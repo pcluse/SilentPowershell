@@ -4,11 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.IO;
 
 namespace SilentPowershell
 {
     class Program
     {
+        private static System.IO.StreamWriter file;
         static string commandLineWithoutCommand()
         {
             string commandLine = Environment.CommandLine;
@@ -34,20 +36,50 @@ namespace SilentPowershell
 
         static void Main(string[] args)
         {
-            string powershellPath = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
+            var powershellPath = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
             // System.Console.WriteLine(commandLineWithoutCommand());
-            ProcessStartInfo processStartInfo = new ProcessStartInfo(powershellPath, commandLineWithoutCommand());
+            var processStartInfo = new ProcessStartInfo(powershellPath, commandLineWithoutCommand());
             processStartInfo.CreateNoWindow = true;
             processStartInfo.UseShellExecute = false;
             processStartInfo.RedirectStandardInput = true;
             processStartInfo.RedirectStandardOutput = true;
             processStartInfo.RedirectStandardError = true;
-            Process process = Process.Start(processStartInfo);
-            process.StandardInput.Close();
-            process.BeginErrorReadLine();
-            process.BeginOutputReadLine();
-            process.WaitForExit();
+            var process = Process.Start(processStartInfo);
+
+            var logFile = Path.Combine(Path.GetTempPath(), "SilentPowerShell.log");
+            using (file = new System.IO.StreamWriter(logFile, true))
+            {
+                process.OutputDataReceived += new DataReceivedEventHandler(OutputDataHandler);
+                process.ErrorDataReceived  += new DataReceivedEventHandler(ErrorDataHandler);
+
+                process.StandardInput.Close();
+                process.BeginErrorReadLine();
+                process.BeginOutputReadLine();
+                process.WaitForExit();
+                file.WriteLine("{0} EXIT: {1}",
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), process.ExitCode);
+            }
             Environment.Exit(process.ExitCode);
+        }
+
+        private static void OutputDataHandler(object sendingProcess,
+            DataReceivedEventArgs outLine)
+        {
+            if (!String.IsNullOrEmpty(outLine.Data))
+            {
+                file.WriteLine("{0} OUT: {1}",
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), outLine.Data);
+            }
+        }
+
+        private static void ErrorDataHandler(object sendingProcess,
+            DataReceivedEventArgs outLine)
+        {
+            if (!String.IsNullOrEmpty(outLine.Data))
+            {
+                file.WriteLine("{0} ERR: {1}",
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), outLine.Data);
+            }
         }
     }
 }
