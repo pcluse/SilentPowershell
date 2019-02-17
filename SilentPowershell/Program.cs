@@ -5,12 +5,15 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 
 namespace SilentPowershell
 {
     class Program
     {
         private static System.IO.StreamWriter file;
+        private static string output = "";
+
         static string commandLineWithoutCommand()
         {
             string commandLine = Environment.CommandLine;
@@ -36,6 +39,9 @@ namespace SilentPowershell
 
         static void Main(string[] args)
         {
+            output += String.Format("{0} CALL: {1}\r\n",
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), Environment.CommandLine);
+
             var powershellPath = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
             // System.Console.WriteLine(commandLineWithoutCommand());
             var processStartInfo = new ProcessStartInfo(powershellPath, commandLineWithoutCommand());
@@ -47,18 +53,24 @@ namespace SilentPowershell
             var process = Process.Start(processStartInfo);
 
             var logFile = Path.Combine(Path.GetTempPath(), "SilentPowerShell.log");
-            using (file = new System.IO.StreamWriter(logFile, true))
-            {
-                process.OutputDataReceived += new DataReceivedEventHandler(OutputDataHandler);
-                process.ErrorDataReceived  += new DataReceivedEventHandler(ErrorDataHandler);
+           
+            process.OutputDataReceived += new DataReceivedEventHandler(OutputDataHandler);
+            process.ErrorDataReceived  += new DataReceivedEventHandler(ErrorDataHandler);
 
-                process.StandardInput.Close();
-                process.BeginErrorReadLine();
-                process.BeginOutputReadLine();
-                process.WaitForExit();
-                file.WriteLine("{0} EXIT: {1}",
-                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), process.ExitCode);
+            process.StandardInput.Close();
+            process.BeginErrorReadLine();
+            process.BeginOutputReadLine();
+            process.WaitForExit();
+            output += String.Format("{0} EXIT: {1}\r\n---------------------------------\r\n",
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), process.ExitCode);
+
+            using (var mutex = new Mutex(false, "silentpowershell.pc.lu.se"))
+            {
+                mutex.WaitOne();
+                File.AppendAllText(logFile, output);
+                mutex.ReleaseMutex();
             }
+
             Environment.Exit(process.ExitCode);
         }
 
@@ -67,7 +79,7 @@ namespace SilentPowershell
         {
             if (!String.IsNullOrEmpty(outLine.Data))
             {
-                file.WriteLine("{0} OUT: {1}",
+                output += String.Format("{0} OUT: {1}\r\n",
                     DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), outLine.Data);
             }
         }
@@ -77,7 +89,7 @@ namespace SilentPowershell
         {
             if (!String.IsNullOrEmpty(outLine.Data))
             {
-                file.WriteLine("{0} ERR: {1}",
+                output += String.Format("{0} ERR: {1}\r\n",
                     DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), outLine.Data);
             }
         }
