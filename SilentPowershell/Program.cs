@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -11,7 +7,6 @@ namespace SilentPowershell
 {
     class Program
     {
-        private static System.IO.StreamWriter file;
         private static string output = "";
 
         static string commandLineWithoutCommand()
@@ -41,6 +36,9 @@ namespace SilentPowershell
         {
             output += String.Format("{0} CALL: {1}\r\n",
                 DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), Environment.CommandLine);
+            output += String.Format("{0} USER: {1}\r\n",
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                System.Security.Principal.WindowsIdentity.GetCurrent().Name);
 
             var powershellPath = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
             // System.Console.WriteLine(commandLineWithoutCommand());
