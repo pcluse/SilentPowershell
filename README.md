@@ -5,5 +5,7 @@ This is handy then you want to run powershell scripts from Scheduled tasks, as e
 
 All output is logged to
 
-C:\Windows\Temp\SilentPowerShell.log (if run by system)
-C:\Users\xxx\AppData\Local\Temp\SilentPowerShell.log (if run by user)
+* C:\Windows\Temp\SilentPowerShell.log (if run by system)
+* C:\Users\xxx\AppData\Local\Temp\SilentPowerShell.log (if run by user)
+
+if the registry value HKLM:\Software\PLS\SilentPowershell; Logging = 1
